@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CSC Chhattisgarh - District PMS Portal (Target vs Achievement)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+    .table-container { max-height: 68vh; overflow: auto; }
+    thead th { position: sticky; top: 0; z-index: 10; }
+    thead tr:nth-child(2) th { top: 38px; }
+  </style>
+</head>
+<body class="text-gray-800">
+
+  <!-- Header -->
+  <header class="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 text-white shadow-md">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-3">
+      <div>
+        <h1 class="text-xl md:text-2xl font-bold tracking-tight">CSC Chhattisgarh — District PMS Dashboard</h1>
+        <p class="text-xs md:text-sm text-blue-200">Business Activity Wise Target vs Achievement (Monthly, Quarterly, Half-Yearly & Annually)</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="exportToCSV()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs md:text-sm font-semibold px-4 py-2 rounded-lg shadow transition">
+          Download CSV Report
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto px-4 py-6">
+
+    <!-- Filters Card -->
+    <div class="bg-white p-4 md:p-5 rounded-xl shadow-sm border border-gray-200 mb-6">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        <!-- District Filter -->
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">1. Select District</label>
+          <select id="districtFilter" onchange="onFilterChange()" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            <option value="ALL">ALL DISTRICTS (STATE TOTAL)</option>
+          </select>
+        </div>
+
+        <!-- Vertical Filter -->
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">2. Select Vertical</label>
+          <select id="verticalFilter" onchange="renderDashboard()" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            <option value="ALL">ALL VERTICALS</option>
+          </select>
+        </div>
+
+        <!-- Period Type Filter -->
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">3. Period Category</label>
+          <select id="periodCategory" onchange="updatePeriodOptions()" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            <option value="MONTHLY">Monthly</option>
+            <option value="QUARTERLY">Quarterly</option>
+            <option value="HALFYEARLY">Half-Yearly</option>
+            <option value="ANNUALLY" selected>Annually (Yearly)</option>
+          </select>
+        </div>
+
+        <!-- Specific Period Filter -->
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">4. Select Period</label>
+          <select id="periodSelect" onchange="renderDashboard()" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-medium bg-blue-50 border-blue-300 text-blue-900 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            <option value="YEARLY">YEARLY</option>
+          </select>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Summary KPI Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <!-- TXN Card -->
+      <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-blue-600">
+        <div class="flex justify-between items-center">
+          <span class="text-xs font-bold text-gray-500 uppercase">Transactions (TXN)</span>
+          <span id="kpiTxnPct" class="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">0%</span>
+        </div>
+        <div class="mt-2 flex justify-between items-baseline">
+          <div>
+            <p class="text-xs text-gray-400">Achievement</p>
+            <p id="kpiTxnAch" class="text-lg font-bold text-gray-900">0</p>
+          </div>
+          <div class="text-right">
+            <p class="text-xs text-gray-400">Target</p>
+            <p id="kpiTxnTgt" class="text-sm font-semibold text-gray-600">0</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- AMT Card -->
+      <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-indigo-600">
+        <div class="flex justify-between items-center">
+          <span class="text-xs font-bold text-gray-500 uppercase">Amount (AMT in ₹)</span>
+          <span id="kpiAmtPct" class="text-xs font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800">0%</span>
+        </div>
+        <div class="mt-2 flex justify-between items-baseline">
+          <div>
+            <p class="text-xs text-gray-400">Achievement</p>
+            <p id="kpiAmtAch" class="text-lg font-bold text-gray-900">0</p>
+          </div>
+          <div class="text-right">
+            <p class="text-xs text-gray-400">Target</p>
+            <p id="kpiAmtTgt" class="text-sm font-semibold text-gray-600">0</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- REV Card -->
+      <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-emerald-600">
+        <div class="flex justify-between items-center">
+          <span class="text-xs font-bold text-gray-500 uppercase">Revenue (REV in ₹)</span>
+          <span id="kpiRevPct" class="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">0%</span>
+        </div>
+        <div class="mt-2 flex justify-between items-baseline">
+          <div>
+            <p class="text-xs text-gray-400">Achievement</p>
+            <p id="kpiRevAch" class="text-lg font-bold text-gray-900">0</p>
+          </div>
+          <div class="text-right">
+            <p class="text-xs text-gray-400">Target</p>
+            <p id="kpiRevTgt" class="text-sm font-semibold text-gray-600">0</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search Box -->
+    <div class="mb-3 flex justify-between items-center">
+      <input type="text" id="searchInput" onkeyup="renderDashboard()" placeholder="Search Business Activity..." class="w-full md:w-80 border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+      <span id="rowCount" class="text-xs font-medium text-gray-500 ml-3">Loading data...</span>
+    </div>
+
+    <!-- Data Table -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div id="loader" class="p-10 text-center text-gray-500 font-medium">
+        Fetching live data from Google Sheet... Please wait.
+      </div>
+      <div class="table-container hidden" id="tableWrapper">
+        <table class="w-full text-xs text-left border-collapse" id="pmsTable">
+          <thead>
+            <tr class="bg-gray-800 text-white">
+              <th rowspan="2" class="px-3 py-2 border border-gray-700">S.No</th>
+              <th rowspan="2" class="px-3 py-2 border border-gray-700">Vertical</th>
+              <th rowspan="2" class="px-3 py-2 border border-gray-700 min-w-[220px]">Business Activity</th>
+              <th colspan="3" class="px-3 py-2 border border-gray-700 text-center bg-blue-900">TARGET</th>
+              <th colspan="3" class="px-3 py-2 border border-gray-700 text-center bg-emerald-900">ACHIEVEMENT</th>
+              <th colspan="3" class="px-3 py-2 border border-gray-700 text-center bg-amber-900">% ACHIEVED</th>
+            </tr>
+            <tr class="bg-gray-700 text-gray-100">
+              <th class="px-2 py-1.5 border border-gray-600 text-right">TXN</th>
+              <th class="px-2 py-1.5 border border-gray-600 text-right">AMT</th>
+              <th class="px-2 py-1.5 border border-gray-600 text-right">REV</th>
+              <th class="px-2 py-1.5 border border-gray-600 text-right">TXN</th>
+              <th class="px-2 py-1.5 border border-gray-600 text-right">AMT</th>
+              <th class="px-2 py-1.5 border border-gray-600 text-right">REV</th>
+              <th class="px-2 py-1.5 border border-gray-600 text-right">TXN %</th>
+              <th class="px-2 py-1.5 border border-gray-600 text-right">AMT %</th>
+              <th class="px-2 py-1.5 border border-gray-600 text-right">REV %</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody" class="divide-y divide-gray-200"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    // APNA DEPLOYED WEB APP URL YAHAN PASTE KAREIN
+    const API_URL = "https://script.google.com/macros/s/AKfycbyg2DZmEefG91hl2Yhlrqh2AA1tuaQP0z8nFfBfYNXrkf8hWwibvs6OrGmybSnsO1o8ng/exec";
+
+    let rawData = [];
+    let currentFilteredRows = [];
+
+    const periodOptionsMap = {
+      "MONTHLY": ["APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER", "JANUARY", "FEBRUARY", "MARCH"],
+      "QUARTERLY": ["QUARTER 1", "QUARTER 2", "QUARTER 3", "QUARTER 4"],
+      "HALFYEARLY": ["HALF YEARLY 1 (APR-SEP)", "HALF YEARLY 2 (OCT-MAR)"],
+      "ANNUALLY": ["YEARLY"]
+    };
+
+    window.onload = async () => {
+      updatePeriodOptions();
+      try {
+        const res = await fetch(API_URL);
+        const json = await res.json();
+        if (json.status === "success") {
+          rawData = json.data;
+          populateDropdowns();
+          document.getElementById("loader").classList.add("hidden");
+          document.getElementById("tableWrapper").classList.remove("hidden");
+          renderDashboard();
+        } else {
+          document.getElementById("loader").innerText = "Error: " + json.message;
+        }
+      } catch (e) {
+        document.getElementById("loader").innerText = "Failed to load data. Check Web App URL & Permissions.";
+      }
+    };
+
+    function populateDropdowns() {
+      const districts = [...new Set(rawData.map(r => r.district))].sort();
+      const distSelect = document.getElementById("districtFilter");
+      districts.forEach(d => {
+        const opt = document.createElement("option");
+        opt.value = d;
+        opt.textContent = d;
+        distSelect.appendChild(opt);
+      });
+
+      const verticals = [...new Set(rawData.map(r => r.vertical))].sort();
+      const vertSelect = document.getElementById("verticalFilter");
+      verticals.forEach(v => {
+        const opt = document.createElement("option");
+        opt.value = v;
+        opt.textContent = v;
+        vertSelect.appendChild(opt);
+      });
+    }
+
+    function updatePeriodOptions() {
+      const cat = document.getElementById("periodCategory").value;
+      const periodSelect = document.getElementById("periodSelect");
+      periodSelect.innerHTML = "";
+      periodOptionsMap[cat].forEach(p => {
+        const opt = document.createElement("option");
+        opt.value = p;
+        opt.textContent = p;
+        periodSelect.appendChild(opt);
+      });
+      renderDashboard();
+    }
+
+    function onFilterChange() {
+      renderDashboard();
+    }
+
+    // Bina decimal ke round-up formatting
+    function formatNum(n) {
+      const rounded = Math.ceil(Number(n || 0));
+      return rounded.toLocaleString('en-IN', { maximumFractionDigits: 0 });
+    }
+
+    // Percentage bhi bina decimal ke round-up
+    function calcPct(ach, tgt) {
+      if (!tgt || tgt === 0) return ach > 0 ? "100%" : "0%";
+      return Math.ceil((ach / tgt) * 100) + "%";
+    }
+
+    function getBadgeColor(ach, tgt) {
+      if (!tgt || tgt === 0) return "text-gray-500";
+      const pct = Math.ceil((ach / tgt) * 100);
+      if (pct >= 100) return "text-emerald-700 font-bold bg-emerald-50";
+      if (pct >= 75) return "text-amber-700 font-semibold bg-amber-50";
+      return "text-red-600 font-semibold bg-red-50";
+    }
+
+    function renderDashboard() {
+      const selectedDist = document.getElementById("districtFilter").value;
+      const selectedVert = document.getElementById("verticalFilter").value;
+      const selectedPeriod = document.getElementById("periodSelect").value;
+      const searchQuery = document.getElementById("searchInput").value.toLowerCase();
+
+      let filtered = rawData.filter(r => {
+        const matchDist = (selectedDist === "ALL") || (r.district === selectedDist);
+        const matchVert = (selectedVert === "ALL") || (r.vertical === selectedVert);
+        const matchSearch = r.activity.toLowerCase().includes(searchQuery) || r.vertical.toLowerCase().includes(searchQuery);
+        return matchDist && matchVert && matchSearch;
+      });
+
+      const aggregatedMap = new Map();
+      filtered.forEach(item => {
+        const key = item.vertical + "||" + item.activity;
+        const m = item.metrics[selectedPeriod];
+        if (!aggregatedMap.has(key)) {
+          aggregatedMap.set(key, {
+            vertical: item.vertical,
+            activity: item.activity,
+            t_txn: 0, t_amt: 0, t_rev: 0,
+            a_txn: 0, a_amt: 0, a_rev: 0
+          });
+        }
+        const entry = aggregatedMap.get(key);
+        entry.t_txn += Math.ceil(m.t_txn);
+        entry.t_amt += Math.ceil(m.t_amt);
+        entry.t_rev += Math.ceil(m.t_rev);
+        entry.a_txn += Math.ceil(m.a_txn);
+        entry.a_amt += Math.ceil(m.a_amt);
+        entry.a_rev += Math.ceil(m.a_rev);
+      });
+
+      currentFilteredRows = Array.from(aggregatedMap.values());
+
+      let totT_Txn = 0, totT_Amt = 0, totT_Rev = 0;
+      let totA_Txn = 0, totA_Amt = 0, totA_Rev = 0;
+
+      const tbody = document.getElementById("tableBody");
+      tbody.innerHTML = "";
+
+      currentFilteredRows.forEach((row, idx) => {
+        totT_Txn += row.t_txn; totT_Amt += row.t_amt; totT_Rev += row.t_rev;
+        totA_Txn += row.a_txn; totA_Amt += row.a_amt; totA_Rev += row.a_rev;
+
+        const tr = document.createElement("tr");
+        tr.className = "hover:bg-blue-50/50 transition";
+        tr.innerHTML = `
+          <td class="px-3 py-2 border border-gray-200 text-gray-500">${idx + 1}</td>
+          <td class="px-3 py-2 border border-gray-200 font-medium text-indigo-800">${row.vertical}</td>
+          <td class="px-3 py-2 border border-gray-200 font-semibold text-gray-900">${row.activity}</td>
+          <td class="px-2 py-2 border border-gray-200 text-right">${formatNum(row.t_txn)}</td>
+          <td class="px-2 py-2 border border-gray-200 text-right">${formatNum(row.t_amt)}</td>
+          <td class="px-2 py-2 border border-gray-200 text-right">${formatNum(row.t_rev)}</td>
+          <td class="px-2 py-2 border border-gray-200 text-right font-semibold text-blue-900">${formatNum(row.a_txn)}</td>
+          <td class="px-2 py-2 border border-gray-200 text-right font-semibold text-blue-900">${formatNum(row.a_amt)}</td>
+          <td class="px-2 py-2 border border-gray-200 text-right font-semibold text-blue-900">${formatNum(row.a_rev)}</td>
+          <td class="px-2 py-2 border border-gray-200 text-right ${getBadgeColor(row.a_txn, row.t_txn)}">${calcPct(row.a_txn, row.t_txn)}</td>
+          <td class="px-2 py-2 border border-gray-200 text-right ${getBadgeColor(row.a_amt, row.t_amt)}">${calcPct(row.a_amt, row.t_amt)}</td>
+          <td class="px-2 py-2 border border-gray-200 text-right ${getBadgeColor(row.a_rev, row.t_rev)}">${calcPct(row.a_rev, row.t_rev)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById("kpiTxnAch").innerText = formatNum(totA_Txn);
+      document.getElementById("kpiTxnTgt").innerText = formatNum(totT_Txn);
+      document.getElementById("kpiTxnPct").innerText = calcPct(totA_Txn, totT_Txn);
+
+      document.getElementById("kpiAmtAch").innerText = "₹ " + formatNum(totA_Amt);
+      document.getElementById("kpiAmtTgt").innerText = "₹ " + formatNum(totT_Amt);
+      document.getElementById("kpiAmtPct").innerText = calcPct(totA_Amt, totT_Amt);
+
+      document.getElementById("kpiRevAch").innerText = "₹ " + formatNum(totA_Rev);
+      document.getElementById("kpiRevTgt").innerText = "₹ " + formatNum(totT_Rev);
+      document.getElementById("kpiRevPct").innerText = calcPct(totA_Rev, totT_Rev);
+
+      document.getElementById("rowCount").innerText = `Showing ${currentFilteredRows.length} activities (${selectedPeriod})`;
+    }
+
+    function exportToCSV() {
+      const dist = document.getElementById("districtFilter").value;
+      const period = document.getElementById("periodSelect").value;
+      let csv = `District,Vertical,Business Activity,Period,Target TXN,Target AMT,Target REV,Achievement TXN,Achievement AMT,Achievement REV,TXN %,AMT %,REV %\n`;
+
+      currentFilteredRows.forEach(r => {
+        csv += `"${dist}","${r.vertical}","${r.activity}","${period}",${Math.ceil(r.t_txn)},${Math.ceil(r.t_amt)},${Math.ceil(r.t_rev)},${Math.ceil(r.a_txn)},${Math.ceil(r.a_amt)},${Math.ceil(r.a_rev)},"${calcPct(r.a_txn, r.t_txn)}","${calcPct(r.a_amt, r.t_amt)}","${calcPct(r.a_rev, r.t_rev)}"\n`;
+      });
+
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `PMS_${dist}_${period}.csv`;
+      link.click();
+    }
+  </script>
+</body>
+</html>
